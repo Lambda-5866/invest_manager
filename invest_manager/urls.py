@@ -16,7 +16,12 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
+from investments import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path("", views.dashboard_view, name="dashboard"),  # 대시보드
+    path("api/assets/", views.asset_list, name="asset-list"),
+    path("api/assets/add/", views.add_asset, name="add-asset"),
+    path("api/assets/<int:pk>/delete/", views.delete_asset, name="delete-asset"),
 ]
