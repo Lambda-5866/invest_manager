@@ -18,7 +18,7 @@ RUN poetry config virtualenvs.create false && \
 COPY . /app
 
 # 6. 포트
-EXPOSE 8000
+EXPOSE 16886
 
 # 7. 진입점 (프로덕션용)
-CMD ["gunicorn", "myproject.wsgi:application", "--bind", "0.0.0.0:8000"]
+CMD ["gunicorn", "myproject.wsgi:application", "--bind", "0.0.0.0:16886"]
