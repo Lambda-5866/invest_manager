@@ -24,4 +24,4 @@ COPY . /app
 EXPOSE 16886
 
 # 7. 진입점 (프로덕션용)
-CMD ["gunicorn", "myproject.wsgi:application", "--bind", "0.0.0.0:16886"]
+CMD ["uvicorn", "invest_manager.asgi:application", "--host", "0.0.0.0", "--port", "16886", "--reload"]

@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "myproject"
+name = "invest-manager"
 version = "0.1.0"
 description = ""
 authors = ["Lambda-99"]
