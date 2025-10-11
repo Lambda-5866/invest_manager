@@ -17,6 +17,9 @@ COPY . /app/
 # uvicorn 설치 (poetry 의존성에 포함되어 있으면 생략 가능)
 RUN pip install --no-cache-dir uvicorn
 
+ENV DJANGO_SETTINGS_MODULE=invest_manager.settings
+RUN python manage.py collectstatic --noinput
+
 # 포트
 EXPOSE 8000
 
