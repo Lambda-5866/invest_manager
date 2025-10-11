@@ -20,5 +20,8 @@ RUN pip install --no-cache-dir uvicorn
 # 포트
 EXPOSE 8000
 
+# SQLite 파일을 볼륨으로 사용하도록 환경 변수
+ENV DJANGO_SETTINGS_MODULE=invest_manager.settings
+
 # 실행
 CMD ["uvicorn", "invest_manager.asgi:application", "--host", "0.0.0.0", "--port", "8000"]
