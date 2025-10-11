@@ -109,7 +109,7 @@ DATABASES = {
         'NAME': 'invest_manager',
         'USER': 'invest_user',
         'PASSWORD': 'Sjssjek1gh@',
-        'HOST': 'host.docker.internal',
+        'HOST': '192.168.0.168',
         # 'HOST': 'localhost',
         'PORT': '5432',
     }
