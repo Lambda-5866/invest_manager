@@ -18,7 +18,6 @@ COPY . /app/
 RUN pip install --no-cache-dir uvicorn
 
 ENV DJANGO_SETTINGS_MODULE=invest_manager.settings
-RUN python manage.py collectstatic --noinput
 
 # 포트
 EXPOSE 8000
