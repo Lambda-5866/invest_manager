@@ -14,6 +14,8 @@ RUN pip install --no-cache-dir poetry \
 # 앱 코드 복사
 COPY . /app/
 
+RUN touch db.sqlite3
+
 # uvicorn 설치 (poetry 의존성에 포함되어 있으면 생략 가능)
 RUN pip install --no-cache-dir uvicorn
 
