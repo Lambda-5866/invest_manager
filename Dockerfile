@@ -1,40 +1,24 @@
-# -------- Build Stage --------
-FROM python:3.10-slim AS build
+# python 베이스
+FROM python:3.10-slim
 
-ENV PYTHONUNBUFFERED=1
 WORKDIR /app
 
-# 시스템 의존성
-RUN apt-get update && \
-    apt-get install -y curl build-essential && \
-    rm -rf /var/lib/apt/lists/*
+# 의존성 복사
+COPY pyproject.toml poetry.lock* /app/
 
-# Poetry 설치
-RUN curl -sSL https://install.python-poetry.org | python3 -
-ENV PATH="/root/.local/bin:$PATH"
-
-# 의존성 설치
-COPY pyproject.toml poetry.lock /app/
-RUN poetry config virtualenvs.create false \
+# poetry 설치
+RUN pip install --no-cache-dir poetry \
+    && poetry config virtualenvs.create false \
     && poetry install --no-root --no-interaction --no-ansi
 
-# 소스 복사
-COPY . /app
+# 앱 코드 복사
+COPY . /app/
 
-# collectstatic
-RUN python manage.py collectstatic --noinput
-
-# -------- Final Stage --------
-FROM nginx:alpine
-
-# Nginx 설정 복사
-COPY ./deploy/nginx.conf /etc/nginx/conf.d/default.conf
-
-# Django app 복사
-COPY --from=build /app /app
+# uvicorn 설치 (poetry 의존성에 포함되어 있으면 생략 가능)
+RUN pip install --no-cache-dir uvicorn
 
 # 포트
-EXPOSE 16886
+EXPOSE 8000
 
-# CMD는 nginx + Uvicorn 함께 실행
-CMD sh -c "uvicorn invest_manager.asgi:application --host 0.0.0.0 --port 16886 & nginx -g 'daemon off;'"
+# 실행
+CMD ["uvicorn", "invest_manager.asgi:application", "--host", "0.0.0.0", "--port", "8000"]
