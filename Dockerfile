@@ -19,7 +19,9 @@ RUN poetry config virtualenvs.create false && poetry install --no-root --no-inte
 
 # 소스 복사
 COPY . /app
-EXPOSE 8000
 
-CMD ["gunicorn", "myproject.wsgi:application", "--bind", "0.0.0.0:8000"]
+# 6. 포트
+EXPOSE 16886
 
+# 7. 진입점 (프로덕션용)
+CMD ["gunicorn", "myproject.wsgi:application", "--bind", "0.0.0.0:16886"]
