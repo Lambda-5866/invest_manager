@@ -95,10 +95,23 @@ WSGI_APPLICATION = 'invest_manager.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'data/db.sqlite3',
+#     }
+# }
+
+
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'data/db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'invest_manager',
+        'USER': 'invest_user',
+        'PASSWORD': 'Sjssjek1gh@',
+        'HOST': 'host.docker.internal',
+        # 'HOST': 'localhost',
+        'PORT': '5432',
     }
 }
 
