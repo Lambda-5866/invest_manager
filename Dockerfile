@@ -1,24 +1,25 @@
-# 1. 베이스 이미지
-FROM python:3.12-slim
+FROM python:3.10-slim
 
-# 2. 환경 변수
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
-ENV POETRY_VERSION=1.7.1
-
-# 3. 작업 디렉토리
+ENV POETRY_VERSION=1.6.1
 WORKDIR /app
 
-# 4. 의존성 설치
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends curl git build-essential && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Poetry 설치
+RUN curl -sSL https://install.python-poetry.org | python3 -
+ENV PATH="/root/.local/bin:$PATH"
+
+# 의존성 설치
 COPY pyproject.toml poetry.lock* /app/
-RUN poetry config virtualenvs.create false && \
-    poetry install --no-root --no-interaction --no-ansi
+RUN poetry config virtualenvs.create false && poetry install --no-root --no-interaction --no-ansi
 
-# 5. 프로젝트 소스 복사
+# 소스 복사
 COPY . /app
-
-# 6. 포트
 EXPOSE 8000
 
-# 7. 진입점 (프로덕션용)
 CMD ["gunicorn", "myproject.wsgi:application", "--bind", "0.0.0.0:8000"]
+

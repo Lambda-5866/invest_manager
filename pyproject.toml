@@ -1,21 +1,20 @@
-[project]
-name = "invest"
+[tool.poetry]
+name = "myproject"
 version = "0.1.0"
 description = ""
-authors = [
-    {name = "Lambda-5866",email = "sksskek1gh@gmail.com"}
-]
+authors = ["Lambda-99"]
 readme = "README.md"
-requires-python = ">=3.12"
-dependencies = [
-    "django (>=5.2.6,<6.0.0)",
-    "djangorestframework (>=3.16.1,<4.0.0)",
-    "python-dotenv (>=1.1.1,<2.0.0)",
-    "python-environ (>=0.4.54,<0.5.0)",
-    "requests (>=2.32.5,<3.0.0)"
-]
 
+[tool.poetry.dependencies]
+python = "^3.10"
+Django = "^4.2"
+djangorestframework = "^3.14"
+gunicorn = "^21.2"
+
+[tool.poetry.dev-dependencies]
+pytest = "^7.0"
+black = "^24.0"
 
 [build-system]
-requires = ["poetry-core>=2.0.0,<3.0.0"]
+requires = ["poetry-core>=1.5.1"]
 build-backend = "poetry.core.masonry.api"
