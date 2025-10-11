@@ -20,7 +20,5 @@ RUN pip install --no-cache-dir uvicorn
 # 포트
 EXPOSE 8000
 
-RUN python manage.py collectstatic --noinput
-
 # 실행
 CMD ["uvicorn", "invest_manager.asgi:application", "--host", "0.0.0.0", "--port", "8000"]
