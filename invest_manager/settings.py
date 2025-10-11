@@ -30,6 +30,13 @@ DEBUG = env.bool("DEBUG", default=False)
 
 print("DEBUG VALUE:", env("DEBUG", default="NOT FOUND"))
 
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "asset_cache",
+    }
+}
+
 # SECURITY WARNING: don't run with debug turned on in production!
 # DEBUG = True
 
@@ -59,7 +66,7 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    # 'django.middleware.csrf.CsrfViewMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
