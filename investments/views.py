@@ -88,12 +88,10 @@ def fetch_ecos_rate(currency_code: str, date_str: str) -> float | None:
 
     while True:
         url = f"{BASE_URL}/{ECOS_API_KEY}/json/kr/1/1/731Y003/D/{current_date.strftime('%Y%m%d')}/{current_date.strftime('%Y%m%d')}/{table_code}"
-        print("요청 URL:", url)
 
         try:
             res = requests.get(url, timeout=8)
             data = res.json()
-            print("응답 데이터:", data)
 
             # 데이터 없음 (INFO-200)이면 하루 전으로 이동
             result_info = data.get("RESULT")
@@ -125,36 +123,56 @@ def fetch_ecos_rate(currency_code: str, date_str: str) -> float | None:
             return None
 
 # -----------------------
-# 금 시세 (옵션)
+# ECOS 금 시세 조회 (캐시 포함)
 # -----------------------
 def fetch_gold_price_krw(date_str: str) -> float | None:
     """
-    METALS API를 통해 XAU -> KRW (1oz 기준), '원/그램'으로 변환
+    한국은행 ECOS API를 사용해 금 시세(원/돈)를 조회합니다.
+    국제 금 가격(USD/ounce)을 원화로 변환하고, 1돈(3.75g) 기준으로 반환.
     """
     cache_key = f"gold_price_krw_{date_str}"
     cached = cache.get(cache_key)
     if cached is not None:
         return cached
 
-    key = getattr(settings, "METALS_API_KEY", None)
-    if not key:
-        return None
+    current_date = datetime.strptime(date_str, "%Y%m%d")
+    current_date = current_date.replace(day=1) - timedelta(days=1)  # 전월 마지막 날
+    
+
+    # API 요청 URL (startCount, endCount 추가)
+    url = f"{BASE_URL}/{ECOS_API_KEY}/json/kr/1/1/902Y003/M/{current_date.strftime('%Y%m')}/{current_date.strftime('%Y%m')}/040101"
+    print("Gold 요청 URL:", url)
 
     try:
-        url = f"https://metals-api.com/api/latest?access_key={key}&base=XAU&symbols=KRW"
+        # 금 가격 요청 (USD/ounce)
         res = requests.get(url, timeout=8)
+        res.raise_for_status()
         data = res.json()
-        krw_per_oz = data.get("rates", {}).get("KRW")
-        if not krw_per_oz:
-            return None
+        rows = data.get("StatisticSearch", {}).get("row")
 
-        krw_per_g = float(krw_per_oz) / 31.1035
-        cache.set(cache_key, krw_per_g, timeout=3600)
-        return krw_per_g
+        row = rows[0] if isinstance(rows, list) else rows
+        gold_price_usd = float(row.get("DATA_VALUE"))
+
+        # USD/KRW 환율 가져오기
+        usd_rate = fetch_ecos_rate("USD", current_date.strftime("%Y%m%d"))
+        if usd_rate is None:
+            print(f"{current_date.strftime('%Y-%m-%d')} USD 환율 조회 실패")
+            current_date -= timedelta(days=1)
+
+        # 금 1온스(31.1035g)를 원화로 변환
+        gold_price_krw_per_oz = gold_price_usd * usd_rate
+        # 1돈(3.75g)으로 변환 (31.1035g / 3.75g ≈ 8.29427)
+        gold_price_krw_per_don = gold_price_krw_per_oz / 8.29427
+        gold_price_krw_per_don = round(gold_price_krw_per_don, 0)
+
+        # 캐시 저장
+        cache.set(cache_key, gold_price_krw_per_don, timeout=3600)
+        return gold_price_krw_per_don
 
     except Exception as e:
-        print("Gold fetch error:", e)
-        return None
+        print(f"Gold fetch error: {e}")
+
+    return None
 
 
 # -----------------------
