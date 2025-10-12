@@ -95,25 +95,20 @@ WSGI_APPLICATION = 'invest_manager.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.sqlite3',
-#         'NAME': BASE_DIR / 'data/db.sqlite3',
-#     }
-# }
-
-
 DATABASES = {
     'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'data/db.sqlite3',
+    } if DEBUG else {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'invest_manager',
         'USER': 'invest_user',
         'PASSWORD': 'Sjssjek1gh@',
         'HOST': '192.168.0.168',
-        # 'HOST': 'localhost',
         'PORT': '5432',
     }
 }
+
 
 
 # Password validation
