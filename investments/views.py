@@ -1,6 +1,7 @@
 # investments/views.py
 import requests
 from datetime import date, datetime, timedelta
+from typing import Optional
 from collections import OrderedDict
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from django.shortcuts import render
@@ -17,6 +18,10 @@ from .serializers import AssetSerializer
 
 ECOS_API_KEY = "OQ0VZR6EXHJORKOX9HTG"  # 이미 발급받은 키
 BASE_URL = "https://ecos.bok.or.kr/api/StatisticSearch"
+
+GOLD_BASE_URL = "https://apis.data.go.kr/1160100/service/GetGeneralProductInfoService/getGoldPriceInfo"
+SERVICE_KEY = "d197cbc79911b5cdc1bd69a9bbee490d30ca8c955d84ae9793984c701752fbe1"   # ← 실제 사용 시 본인 키로 교체
+CACHE_TTL = 3600
 
 # -----------------------
 # 대시보드 뷰
@@ -125,56 +130,89 @@ def fetch_ecos_rate(currency_code: str, date_str: str) -> float | None:
 # -----------------------
 # ECOS 금 시세 조회 (캐시 포함)
 # -----------------------
-def fetch_gold_price_krw(date_str: str) -> float | None:
+def fetch_gold_price_krw(date_str: str, max_retry_days: int = 30) -> Optional[float]:
     """
-    한국은행 ECOS API를 사용해 금 시세(원/돈)를 조회합니다.
-    국제 금 가격(USD/ounce)을 원화로 변환하고, 1돈(3.75g) 기준으로 반환.
+    KRX 금시장 API → 1돈(3.75g) 금 가격 (원)
+    - 데이터 없으면 하루 전으로 자동 재시도
+    - 정확한 1kg 금 상품 선택
     """
-    cache_key = f"gold_price_krw_{date_str}"
-    cached = cache.get(cache_key)
-    if cached is not None:
-        return cached
-
     current_date = datetime.strptime(date_str, "%Y%m%d")
-    current_date = current_date.replace(day=1) - timedelta(days=1)  # 전월 마지막 날
-    
+    original_date_str = date_str
+    tried_dates = []
 
-    # API 요청 URL (startCount, endCount 추가)
-    url = f"{BASE_URL}/{ECOS_API_KEY}/json/kr/1/1/902Y003/M/{current_date.strftime('%Y%m')}/{current_date.strftime('%Y%m')}/040101"
-    print("Gold 요청 URL:", url)
+    for _ in range(max_retry_days):
+        try_date_str = current_date.strftime("%Y%m%d")
+        tried_dates.append(try_date_str)
 
-    try:
-        # 금 가격 요청 (USD/ounce)
-        res = requests.get(url, timeout=8)
-        res.raise_for_status()
-        data = res.json()
-        rows = data.get("StatisticSearch", {}).get("row")
+        # -------------------------------
+        # 1. 캐시 확인
+        # -------------------------------
+        cache_key = f"gold_price_krw_{try_date_str}"
+        cached = cache.get(cache_key)
+        if cached is not None:
+            print(f"[{try_date_str}] 캐시 히트: {cached:,} 원")
+            return float(cached)
 
-        row = rows[0] if isinstance(rows, list) else rows
-        gold_price_usd = float(row.get("DATA_VALUE"))
+        # -------------------------------
+        # 2. API 요청
+        # -------------------------------
+        params = {
+            "serviceKey": SERVICE_KEY,
+            "resultType": "json",
+            "numOfRows": "1",
+            "pageNo": "1"
+        }
 
-        # USD/KRW 환율 가져오기
-        usd_rate = fetch_ecos_rate("USD", current_date.strftime("%Y%m%d"))
-        if usd_rate is None:
-            print(f"{current_date.strftime('%Y-%m-%d')} USD 환율 조회 실패")
-            current_date -= timedelta(days=1)
+        try:
+            response = requests.get(GOLD_BASE_URL, params=params, timeout=10)
+            response.raise_for_status()
+            data = response.json()
+        except requests.RequestException as e:
+            print(f"API 요청 실패: {e}")
 
-        # 금 1온스(31.1035g)를 원화로 변환
-        gold_price_krw_per_oz = gold_price_usd * usd_rate
-        # 1돈(3.75g)으로 변환 (31.1035g / 3.75g ≈ 8.29427)
-        gold_price_krw_per_don = gold_price_krw_per_oz / 8.29427
-        gold_price_krw_per_don = round(gold_price_krw_per_don, 0)
+        # -------------------------------
+        # 3. 응답 구조 안전하게 파싱
+        # -------------------------------
+        body = data.get("response", {}).get("body", {})
+        if not body:
+            print(f"응답 body 없음")
 
-        # 캐시 저장
-        cache.set(cache_key, gold_price_krw_per_don, timeout=3600)
-        return gold_price_krw_per_don
+        items_container = body.get("items", {})
+        if not items_container:
+            print(f"items 없음")
 
-    except Exception as e:
-        print(f"Gold fetch error: {e}")
+        # "item" 키가 있는지 확인
+        raw_items = items_container.get("item")
+        if raw_items is None:
+            print(f"item 키 없음 → 빈 데이터")
 
+        # -------------------------------
+        # 4. 가격 계산
+        # -------------------------------
+        try:
+            price_per_g = int(raw_items[0]["clpr"])
+            price_per_don = round(price_per_g * 3.75)
+        except Exception as e:
+            print(f"가격 계산 실패: {e}")
+
+        # -------------------------------
+        # 5. 성공 → 캐시 저장 + 반환
+        # -------------------------------
+        cache.set(cache_key, price_per_don, timeout=CACHE_TTL)
+        # 원래 요청 날짜에도 캐시 (재요청 시 빠르게)
+        if try_date_str != original_date_str:
+            orig_key = f"gold_price_krw_{original_date_str}"
+            cache.set(orig_key, price_per_don, timeout=CACHE_TTL)
+
+        print(f"[{try_date_str}] 금 1돈 가격: {price_per_don:,} 원 (기준일: {original_date_str})")
+        return price_per_don
+
+    # -------------------------------
+    # 최대 재시도 실패
+    # -------------------------------
+    print(f"[{original_date_str}] 금 시세 조회 실패: {max_retry_days}일 내 데이터 없음")
     return None
-
-
+    
 # -----------------------
 # Portfolio API
 # -----------------------
