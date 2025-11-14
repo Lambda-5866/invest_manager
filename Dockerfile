@@ -1,10 +1,14 @@
 # python 베이스
 FROM python:3.10-slim
 
+RUN useradd -m lambda
+
 WORKDIR /app
 
 # 의존성 복사
 COPY pyproject.toml poetry.lock* /app/
+
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
 # poetry 설치
 RUN pip install --no-cache-dir poetry \
@@ -12,12 +16,9 @@ RUN pip install --no-cache-dir poetry \
     && poetry install --no-root --no-interaction --no-ansi
 
 # 앱 코드 복사
-COPY . /app/
+COPY . /app/ 
 
 USER lambda
-
-# uvicorn 설치 (poetry 의존성에 포함되어 있으면 생략 가능)
-RUN pip install --no-cache-dir uvicorn curl
 
 ENV DJANGO_SETTINGS_MODULE=invest_manager.settings
 
