@@ -14,13 +14,20 @@ RUN pip install --no-cache-dir poetry \
 # 앱 코드 복사
 COPY . /app/
 
+USER lambda
+
 # uvicorn 설치 (poetry 의존성에 포함되어 있으면 생략 가능)
-RUN pip install --no-cache-dir uvicorn
+RUN pip install --no-cache-dir uvicorn curl
 
 ENV DJANGO_SETTINGS_MODULE=invest_manager.settings
 
 # 포트
 EXPOSE 8000
+
+# ---- HEALTHCHECK 추가 ----
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:8000/health/ || exit 1
+# --------------------------
 
 # 실행
 CMD ["uvicorn", "invest_manager.asgi:application", "--host", "0.0.0.0", "--port", "8000"]

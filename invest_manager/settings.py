@@ -27,7 +27,7 @@ environ.Env.read_env('.env')
 # SECRET_KEY = 'django-insecure-jbwx15zmp^3r$rk%nk*+%2+lfv3av3*k$$uwl2jc=m)ry)1rx3'
 SECRET_KEY = env("SECRET_KEY")
 DEBUG = env.bool("DEBUG", default=False)
-DB_PASSWD = env.("DB_PASSWD")
+DB_PASSWD = env("DB_PASSWD")
 
 print("DEBUG VALUE:", env("DEBUG", default="NOT FOUND"))
 
