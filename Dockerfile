@@ -8,7 +8,7 @@ WORKDIR /app
 # 의존성 복사
 COPY pyproject.toml poetry.lock* /app/
 
-RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install --no-install-recommends -y curl && rm -rf /var/lib/apt/lists/*
 
 # poetry 설치
 RUN pip install --no-cache-dir poetry \
